@@ -1,10 +1,15 @@
 package ws.refcursor.dto;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ObjectNameRequest {
 
+	@Size(min = 1, max = 30)
+	@NotNull
 	String objectName;
 
 	public ObjectNameRequest() {

@@ -2,9 +2,13 @@ package ws.refcursor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Validator;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
@@ -24,7 +28,6 @@ import ws.refcursor.dto.ErrorResponse;
 import ws.refcursor.dto.ObjectNameRequest;
 import ws.refcursor.dto.ObjectOwnerRequest;
 import ws.refcursor.props.MyProperties;
-import ws.refcursor.util.RequestValidator;
 import ws.refcursor.util.WsThreadPoolExecutor;
 import ws.refcursor.util.XMLConverter;
 import ws.refcursor.util.ErrorCodes;
@@ -47,6 +50,9 @@ public class WsController {
 	
 	@Autowired
 	XMLConverter xMLConverter;
+	
+	@Autowired
+	Validator validator;
 	
 	@RequestMapping("/isAlive")
     public String isAlive(@RequestBody String req) {
@@ -80,14 +86,25 @@ public class WsController {
 	
 	
 	private List<ErrorResponse> checkRequest(Object req) {
-		RequestValidator rval = new RequestValidator();
 		List<ErrorResponse> errors = new ArrayList<ErrorResponse>(0);
 		if(req!=null){
-			if(req instanceof ObjectNameRequest)
-				errors.addAll(rval.checkObjectNameRequest((ObjectNameRequest)req));
-			else if(req instanceof ObjectOwnerRequest)
-				errors.addAll(rval.checkObjectOwnerRequest((ObjectOwnerRequest)req));
-			
+			if(req instanceof ObjectNameRequest){
+				ObjectNameRequest value = (ObjectNameRequest)req;
+				Set<ConstraintViolation<ObjectNameRequest>> violations = validator.validate(value);
+				for (ConstraintViolation<ObjectNameRequest> violation : violations) {
+					String propertyPath = violation.getPropertyPath().toString();
+		            String message = violation.getMessage();
+		            errors.add(new ErrorResponse(ErrorCodes.ERROR.INVALID_REQUEST_DATA, propertyPath+" - "+message, value.toString()));
+		        }
+			} else if(req instanceof ObjectOwnerRequest) {
+				ObjectOwnerRequest value = (ObjectOwnerRequest)req;
+				Set<ConstraintViolation<ObjectOwnerRequest>> violations = validator.validate(value);
+				for (ConstraintViolation<ObjectOwnerRequest> violation : violations) {
+					String propertyPath = violation.getPropertyPath().toString();
+		            String message = violation.getMessage();
+		            errors.add(new ErrorResponse(ErrorCodes.ERROR.INVALID_REQUEST_DATA, propertyPath+" - "+message, value.toString()));
+		        }
+			}
 		}
 		
 		return errors;
@@ -131,7 +148,7 @@ public class WsController {
 			if(errors.size()>0){
 				log.warn(method+" - Invalid input object format "+req.toString());
 				response.clear();
-				response.add(new ErrorResponse(ErrorCodes.ERROR.INVALID_REQUEST_DATA, req.toString()));
+				//response.add(new ErrorResponse(ErrorCodes.ERROR.INVALID_REQUEST_DATA, req.toString()));
 				response.addAll(errors);
 				stopWatch.stop();
 				log.info(method+" execution time: "+stopWatch.getTotalTimeMillis()+ "ms");

@@ -1,5 +1,8 @@
 package ws.refcursor;
 
+import javax.validation.Validation;
+import javax.validation.ValidatorFactory;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -40,6 +43,13 @@ public class Application {
 		castorMarshaller.setSuppressXsiType(true);
         return castorMarshaller;
     }
+	
+	@Bean
+	public javax.validation.Validator validator() {
+		ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+	    javax.validation.Validator validator = validatorFactory.getValidator();
+		return validator;
+	}
 	
 
 	@Service
